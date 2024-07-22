@@ -7,7 +7,7 @@ import {
   AgentActionSuccessEvent,
   AgentActionType,
   AgentErrorEvent,
-  AgentGenerationSuccessEvent,
+  AgentMessageSuccessEvent,
   DustAPIErrorResponse,
   DustDocument,
   GenerationTokensEvent,
@@ -103,7 +103,7 @@ export class DustApi {
       | AgentErrorEvent
       | AgentActionSuccessEvent
       | GenerationTokensEvent
-      | AgentGenerationSuccessEvent
+      | AgentMessageSuccessEvent
     )[] = [];
     const parser = createParser((event) => {
       if (event.type === "event") {
@@ -206,6 +206,9 @@ export class DustApi {
             break;
           }
           case "generation_tokens": {
+            if (event.classification !== "tokens") {
+              continue;
+            }
             answer += event.text;
             if (lastSentDate.getTime() + 500 > new Date().getTime()) {
               continue;
@@ -215,8 +218,8 @@ export class DustApi {
             setDustAnswer(dustAnswer + "...");
             break;
           }
-          case "agent_generation_success": {
-            answer = this.processAction({ content: event.text, action, setDustDocuments });
+          case "agent_message_success": {
+            answer = this.processAction({ content: event.message.content ?? "", action, setDustDocuments });
             setDustAnswer(answer);
             if (onDone) {
               onDone(answer);
